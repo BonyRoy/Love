@@ -1,0 +1,33 @@
+{
+  "name": "For Ishu",
+  "short_name": "Ishu",
+  "description": "A little love app made just for Ishu",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffe0ec",
+  "theme_color": "#ffe0ec",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/app-icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/bubu-dudu-bears.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "related_applications": [
+    {
+      "platform": "webapp",
+      "url": "https://beatify-2.vercel.app/manifest.webmanifest"
+    }
+  ]
+}

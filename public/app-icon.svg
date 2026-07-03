@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="40" y1="32" x2="472" y2="480" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fff5f8"/>
+      <stop offset="0.5" stop-color="#ffe0ec"/>
+      <stop offset="1" stop-color="#e8d5f5"/>
+    </linearGradient>
+    <linearGradient id="heart" x1="156" y1="120" x2="356" y2="360" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#f368b5"/>
+      <stop offset="0.5" stop-color="#e84393"/>
+      <stop offset="1" stop-color="#6c5ce7"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#e84393" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <circle cx="96" cy="96" r="18" fill="#fdcb6e" opacity="0.35"/>
+  <circle cx="416" cy="88" r="24" fill="#fd79a8" opacity="0.2"/>
+  <circle cx="400" cy="400" r="32" fill="#a29bfe" opacity="0.18"/>
+  <path
+    fill="url(#heart)"
+    filter="url(#shadow)"
+    d="M256 390 C256 390 96 280 96 176 C96 124 136 84 188 84 C220 84 244 100 256 128 C268 100 292 84 324 84 C376 84 416 124 416 176 C416 280 256 390 256 390 Z"
+  />
+  <text
+    x="248"
+    y="224"
+    text-anchor="middle"
+    dominant-baseline="central"
+    font-family="Georgia, 'Times New Roman', serif"
+    font-size="88"
+    font-weight="700"
+    font-style="italic"
+    fill="#fff"
+  >Ishu</text>
+</svg>

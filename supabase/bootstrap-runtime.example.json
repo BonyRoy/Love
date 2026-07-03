@@ -1,0 +1,12 @@
+{
+  "supabase_url": "https://YOUR_PROJECT_REF.supabase.co",
+  "supabase_anon_key": "your_anon_key_here",
+  "firebase": {
+    "api_key": "your_firebase_api_key",
+    "auth_domain": "your-project.firebaseapp.com",
+    "project_id": "your-project-id",
+    "storage_bucket": "your-project.firebasestorage.app",
+    "messaging_sender_id": "your_sender_id",
+    "app_id": "your_app_id"
+  }
+}

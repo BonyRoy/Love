@@ -1,0 +1,53 @@
+import {
+  Home,
+  ListChecks,
+  Gift,
+  Mail,
+  ScrollText,
+  Gamepad2,
+  Target,
+  Brain,
+  CircleDot,
+  LayoutGrid,
+  Scale,
+  MessageCircle,
+  Sparkles,
+  Zap,
+  Dices,
+  Clock,
+  ListTodo,
+  Sun,
+  MapPin,
+  Star,
+  Smile,
+  Music,
+} from "lucide-react";
+
+const iconMap = {
+  Home,
+  ListChecks,
+  Gift,
+  Mail,
+  ScrollText,
+  Gamepad2,
+  Target,
+  Brain,
+  CircleDot,
+  LayoutGrid,
+  Scale,
+  MessageCircle,
+  Sparkles,
+  Zap,
+  Dices,
+  Clock,
+  ListTodo,
+  Sun,
+  MapPin,
+  Star,
+  Smile,
+  Music,
+};
+
+export function getIcon(name) {
+  return iconMap[name];
+}

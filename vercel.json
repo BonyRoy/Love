@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/beatify-proxy/:path*",
+      "destination": "https://firebasestorage.googleapis.com/:path*"
+    }
+  ]
+}
