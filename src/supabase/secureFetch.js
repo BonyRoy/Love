@@ -48,15 +48,20 @@ function parsePostgrestQuery(searchParams) {
   const query = {
     select: searchParams.get("select") || "*",
     filters: [],
-    order: null,
-    limit: searchParams.get("limit"),
     single: false,
   };
 
   const order = searchParams.get("order");
   if (order) {
     const [col, dir] = order.split(".");
-    query.order = { col, asc: dir !== "desc" };
+    if (col) {
+      query.order = { col, asc: dir !== "desc" };
+    }
+  }
+
+  const limit = searchParams.get("limit");
+  if (limit) {
+    query.limit = limit;
   }
 
   for (const [key, value] of searchParams.entries()) {

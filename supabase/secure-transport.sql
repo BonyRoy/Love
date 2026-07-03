@@ -72,7 +72,9 @@ begin
     end if;
   end loop;
 
-  if p_query->'order' is not null then
+  if p_query->'order' is not null
+     and jsonb_typeof(p_query->'order') = 'object'
+     and coalesce(p_query->'order'->>'col', '') <> '' then
     v_order := format(
       ' order by %I %s',
       p_query->'order'->>'col',
