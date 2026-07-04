@@ -26,7 +26,7 @@ import {
   captureHighQualityPhoto,
   getPreferredCameraStream,
   stopCameraStream,
-  canFlipCamera as detectCameraFlipSupport,
+  detectCameraFlipSupport,
   switchCameraFacing,
 } from "../utils/camera";
 
