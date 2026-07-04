@@ -211,7 +211,7 @@ begin
       if v_method = 'POST' then
         insert into public.chat_messages (
           sender, body, image_path, image_url,
-          latitude, longitude, location_accuracy, reactions
+          latitude, longitude, location_accuracy, reactions, reply_to
         )
         values (
           v_body->>'sender',
@@ -221,7 +221,8 @@ begin
           nullif(v_body->>'latitude', '')::double precision,
           nullif(v_body->>'longitude', '')::double precision,
           nullif(v_body->>'location_accuracy', '')::double precision,
-          coalesce(v_body->'reactions', '{}'::jsonb)
+          coalesce(v_body->'reactions', '{}'::jsonb),
+          nullif(v_body->>'reply_to', '')::uuid
         )
         returning * into v_row;
 

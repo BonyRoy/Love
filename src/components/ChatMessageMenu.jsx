@@ -1,4 +1,4 @@
-import { MapPin, Pencil, Trash2 } from "lucide-react";
+import { MapPin, Pencil, Reply, Trash2 } from "lucide-react";
 import { Icon } from "./Icon";
 
 export const CHAT_REACTIONS = ["❤️", "😂", "😮", "😢", "🙏", "👍"];
@@ -13,6 +13,7 @@ export default function ChatMessageMenu({
   onDelete,
   onEdit,
   onReact,
+  onReply,
   onViewLocation,
 }) {
   const myReaction = message.reactions?.[currentSender];
@@ -39,6 +40,10 @@ export default function ChatMessageMenu({
             </button>
           ))}
         </div>
+        <button type="button" className="chat-menu-reply" onClick={onReply}>
+          <Icon icon={Reply} size={18} />
+          Reply
+        </button>
         <div className="chat-message-menu-actions">
           {showLocation && !mine && (
             <button type="button" className="chat-menu-action" onClick={onViewLocation}>

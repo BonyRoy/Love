@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { MessageCircle } from "lucide-react";
+import { Bell } from "lucide-react";
 import { Icon } from "./Icon";
 import ChatNotificationBadge from "./ChatNotificationBadge";
 import { useUnreadChatCount } from "../hooks/useUnreadChatCount";
 
-const POS_KEY = "ishu-chat-fab-pos";
+const POS_KEY = "ishu-admin-bell-pos";
 const SIZE = 56;
 
 function loadPosition() {
@@ -17,7 +17,7 @@ function loadPosition() {
   }
   return {
     x: window.innerWidth - SIZE - 20,
-    y: window.innerHeight - SIZE - 100,
+    y: window.innerHeight - SIZE - 180,
   };
 }
 
@@ -25,11 +25,11 @@ function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
 
-export default function FloatingChatButton() {
+export default function AdminChatBell() {
   const navigate = useNavigate();
   const location = useLocation();
-  const inChat = location.pathname === "/chat";
-  const unread = useUnreadChatCount("her", { pause: inChat });
+  const inChat = location.pathname === "/admin/chat";
+  const unread = useUnreadChatCount("admin", { pause: inChat });
   const [pos, setPos] = useState(loadPosition);
   const posRef = useRef(pos);
   posRef.current = pos;
@@ -86,24 +86,26 @@ export default function FloatingChatButton() {
     drag.current.active = false;
     e.currentTarget.releasePointerCapture(e.pointerId);
     localStorage.setItem(POS_KEY, JSON.stringify(posRef.current));
-    if (!drag.current.moved) navigate("/chat");
+    if (!drag.current.moved) navigate("/admin/chat");
   };
 
   return (
     <div
-      className="chat-fab-wrap"
+      className="admin-bell-wrap"
       style={{ left: pos.x, top: pos.y }}
     >
       <button
         type="button"
-        className="chat-fab"
-        aria-label={unread > 0 ? `Open chat, ${unread} unread messages` : "Open chat"}
+        className="admin-bell-fab"
+        aria-label={
+          unread > 0 ? `Open chat, ${unread} unread messages` : "Open chat"
+        }
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
       >
-        <Icon icon={MessageCircle} size={26} />
+        <Icon icon={Bell} size={26} />
       </button>
       <ChatNotificationBadge count={unread} />
     </div>

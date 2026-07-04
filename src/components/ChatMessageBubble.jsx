@@ -13,6 +13,7 @@ export default function ChatMessageBubble({
   msg,
   mine,
   partnerLabel,
+  replyPreview,
   isSelected,
   onOpenMenu,
   onImageClick,
@@ -32,6 +33,12 @@ export default function ChatMessageBubble({
           {...longPressHandlers}
         >
           {!mine && <span className="chat-sender">{partnerLabel}</span>}
+          {replyPreview && (
+            <div className="chat-reply-preview">
+              <span className="chat-reply-name">{replyPreview.label}</span>
+              <span className="chat-reply-text">{replyPreview.text}</span>
+            </div>
+          )}
           {msg.body && <p className="chat-body">{msg.body}</p>}
           {msg.image_url && (
             <button

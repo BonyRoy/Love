@@ -1,11 +1,15 @@
 import { getSupabase, isSupabaseConfigured } from "./config";
+import { getLastRead, partnerSender } from "../utils/chatReadState";
 
 const TABLE = "chat_messages";
+const PRESENCE_TABLE = "chat_presence";
 const BUCKET = "chat-images";
 const CHANNEL = "chat_room_live";
 const MAX_AGE_MS = 24 * 60 * 60 * 1000;
 const POLL_MS = 3_000;
 const CLEANUP_INTERVAL_MS = 5 * 60 * 1000;
+const PRESENCE_HEARTBEAT_MS = 3_000;
+const PRESENCE_STALE_MS = 12_000;
 
 let liveChannel = null;
 let lastCleanupAt = 0;
@@ -70,6 +74,19 @@ export async function fetchMessages({ withCleanup = false } = {}) {
   return data ?? [];
 }
 
+export async function fetchUnreadCount(viewer) {
+  await maybeCleanup();
+  const partner = partnerSender(viewer);
+  const sinceMs = Math.max(
+    new Date(getLastRead(viewer)).getTime(),
+    Date.now() - MAX_AGE_MS,
+  );
+  const messages = await fetchMessages();
+  return messages.filter(
+    (m) => m.sender === partner && new Date(m.created_at).getTime() > sinceMs,
+  ).length;
+}
+
 async function notifyPeers() {
   if (!liveChannel) return;
   try {
@@ -83,10 +100,89 @@ async function notifyPeers() {
   }
 }
 
-export function subscribeToMessages(onMessages) {
+async function setChatPresence(sender, inChat) {
+  const client = requireSupabase();
+  const { error } = await client.from(PRESENCE_TABLE).upsert(
+    {
+      sender,
+      in_chat: inChat,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "sender" },
+  );
+  if (error) throw error;
+}
+
+async function fetchPartnerInChat(viewer) {
+  const client = requireSupabase();
+  const partner = partnerSender(viewer);
+  const { data, error } = await client
+    .from(PRESENCE_TABLE)
+    .select("in_chat, updated_at")
+    .eq("sender", partner)
+    .maybeSingle();
+
+  if (error || !data?.in_chat) return false;
+  const age = Date.now() - new Date(data.updated_at).getTime();
+  return age < PRESENCE_STALE_MS;
+}
+
+export function subscribeToMessages(onMessages, { sender, onPartnerInChat } = {}) {
   const client = requireSupabase();
   let active = true;
   let refreshTimer = null;
+  let heartbeatTimer = null;
+  let presenceTimer = null;
+
+  const refreshPartnerLive = async () => {
+    if (!active || !sender || !onPartnerInChat) return;
+    try {
+      const live = await fetchPartnerInChat(sender);
+      onPartnerInChat(live);
+    } catch {
+      // table may not exist yet — fail silently
+    }
+  };
+
+  const heartbeat = async () => {
+    if (!active || !sender || document.visibilityState !== "visible") return;
+    try {
+      await setChatPresence(sender, true);
+    } catch {
+      // ignore until SQL migration is run
+    }
+  };
+
+  const goOffline = () => {
+    if (!sender) return;
+    void setChatPresence(sender, false).catch(() => {});
+    if (onPartnerInChat) onPartnerInChat(false);
+  };
+
+  const startPresence = () => {
+    if (!sender || !onPartnerInChat) return;
+    void heartbeat();
+    void refreshPartnerLive();
+    heartbeatTimer = setInterval(heartbeat, PRESENCE_HEARTBEAT_MS);
+    presenceTimer = setInterval(refreshPartnerLive, PRESENCE_HEARTBEAT_MS);
+  };
+
+  const stopPresence = () => {
+    clearInterval(heartbeatTimer);
+    clearInterval(presenceTimer);
+    heartbeatTimer = null;
+    presenceTimer = null;
+    goOffline();
+  };
+
+  const onPresenceVisibility = () => {
+    if (document.visibilityState === "visible") {
+      void heartbeat();
+      void refreshPartnerLive();
+    } else {
+      goOffline();
+    }
+  };
 
   const refresh = async ({ withCleanup = false } = {}) => {
     if (!active) return;
@@ -112,6 +208,9 @@ export function subscribeToMessages(onMessages) {
   };
   document.addEventListener("visibilitychange", onVisible);
   window.addEventListener("focus", refresh);
+  if (sender && onPartnerInChat) {
+    document.addEventListener("visibilitychange", onPresenceVisibility);
+  }
 
   const channel = client
     .channel(CHANNEL, { config: { broadcast: { ack: false, self: false } } })
@@ -131,8 +230,16 @@ export function subscribeToMessages(onMessages) {
       () => scheduleRefresh(),
     )
     .on("broadcast", { event: "message_sent" }, () => scheduleRefresh())
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: PRESENCE_TABLE },
+      () => refreshPartnerLive(),
+    )
     .subscribe((status) => {
-      if (status === "SUBSCRIBED") refresh();
+      if (status === "SUBSCRIBED") {
+        refresh();
+        startPresence();
+      }
       if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
         setTimeout(() => channel.subscribe(), 2000);
       }
@@ -147,6 +254,10 @@ export function subscribeToMessages(onMessages) {
       if (refreshTimer) clearTimeout(refreshTimer);
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("focus", refresh);
+      if (sender && onPartnerInChat) {
+        document.removeEventListener("visibilitychange", onPresenceVisibility);
+        stopPresence();
+      }
       if (liveChannel === channel) liveChannel = null;
       client.removeChannel(channel);
     },
@@ -164,14 +275,19 @@ function withLocation(row, location) {
   };
 }
 
-export async function sendTextMessage(sender, body, location = null) {
+function withReply(row, replyToId) {
+  if (!replyToId) return row;
+  return { ...row, reply_to: replyToId };
+}
+
+export async function sendTextMessage(sender, body, location = null, replyToId = null) {
   const client = requireSupabase();
   const text = body.trim();
   if (!text) return null;
 
   const { data, error } = await client
     .from(TABLE)
-    .insert(withLocation({ sender, body: text }, location))
+    .insert(withReply(withLocation({ sender, body: text }, location), replyToId))
     .select()
     .single();
 
@@ -180,7 +296,7 @@ export async function sendTextMessage(sender, body, location = null) {
   return data;
 }
 
-export async function sendImageMessage(sender, file, location = null) {
+export async function sendImageMessage(sender, file, location = null, replyToId = null) {
   const client = requireSupabase();
   const ext = file.name?.split(".").pop() || "jpg";
   const path = `${sender}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
@@ -196,14 +312,17 @@ export async function sendImageMessage(sender, file, location = null) {
   const { data, error } = await client
     .from(TABLE)
     .insert(
-      withLocation(
-        {
-          sender,
-          image_path: path,
-          image_url: urlData.publicUrl,
-          body: null,
-        },
-        location,
+      withReply(
+        withLocation(
+          {
+            sender,
+            image_path: path,
+            image_url: urlData.publicUrl,
+            body: null,
+          },
+          location,
+        ),
+        replyToId,
       ),
     )
     .select()
@@ -293,9 +412,17 @@ export function createOptimisticMessage(sender, partial) {
     body: partial.body ?? null,
     image_url: partial.image_url ?? null,
     image_path: null,
+    reply_to: partial.reply_to ?? null,
     created_at: new Date().toISOString(),
     pending: true,
   };
+}
+
+export function getReplyPreviewText(message) {
+  if (!message) return "Message unavailable";
+  if (message.body) return message.body;
+  if (message.image_url) return "Photo";
+  return "Message";
 }
 
 export function mergeMessages(serverMessages, pendingLocal = []) {

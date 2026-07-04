@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Camera, Circle, ImagePlus, Send, X } from "lucide-react";
+import { Camera, Circle, ImagePlus, Send, SwitchCamera, X } from "lucide-react";
 import { Icon } from "./Icon";
 import {
   CHAT_EXPIRY_NOTE,
@@ -11,8 +11,10 @@ import {
   setMessageReaction,
   subscribeToMessages,
   updateMessageBody,
+  getReplyPreviewText,
 } from "../supabase/chatService";
 import { isSupabaseConfigured } from "../supabase/config";
+import { markChatRead } from "../utils/chatReadState";
 import ChatEmptyState from "./ChatEmptyState";
 import ChatImagePreview from "./ChatImagePreview";
 import ChatMessageBubble from "./ChatMessageBubble";
@@ -24,6 +26,8 @@ import {
   captureHighQualityPhoto,
   getPreferredCameraStream,
   stopCameraStream,
+  canFlipCamera as detectCameraFlipSupport,
+  switchCameraFacing,
 } from "../utils/camera";
 
 function formatDateLabel(iso) {
@@ -44,6 +48,13 @@ function shouldShowDate(messages, index) {
   return prev !== curr;
 }
 
+const SCROLL_NEAR_BOTTOM_PX = 80;
+
+function isNearBottom(el) {
+  if (!el) return true;
+  return el.scrollHeight - el.scrollTop - el.clientHeight <= SCROLL_NEAR_BOTTOM_PX;
+}
+
 export default function ChatRoom({
   sender,
   title,
@@ -59,17 +70,24 @@ export default function ChatRoom({
   const [cameraOpen, setCameraOpen] = useState(false);
   const [cameraLoading, setCameraLoading] = useState(false);
   const [cameraFacing, setCameraFacing] = useState("environment");
+  const [canFlipCamera, setCanFlipCamera] = useState(false);
   const [cameraZoom, setCameraZoom] = useState(1);
   const [previewImage, setPreviewImage] = useState(null);
   const [actionMessage, setActionMessage] = useState(null);
   const [locationMessage, setLocationMessage] = useState(null);
   const [editingMessage, setEditingMessage] = useState(null);
+  const [replyTo, setReplyTo] = useState(null);
+  const [partnerInChat, setPartnerInChat] = useState(false);
   const listRef = useRef(null);
+  const inputRef = useRef(null);
   const galleryRef = useRef(null);
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const pendingRef = useRef([]);
   const refreshRef = useRef(null);
+  const isNearBottomRef = useRef(true);
+  const hasInitialScrolledRef = useRef(false);
+  const prevLastMessageIdRef = useRef(null);
 
   const applyServerMessages = useCallback((serverMessages) => {
     pendingRef.current = pendingRef.current.filter((m) => m.pending);
@@ -121,22 +139,80 @@ export default function ChatRoom({
     setText("");
   }, []);
 
+  const cancelReply = useCallback(() => {
+    setReplyTo(null);
+  }, []);
+
+  const resolveReplyPreview = useCallback(
+    (replyToId) => {
+      if (!replyToId) return null;
+      const original = messages.find((m) => m.id === replyToId);
+      if (!original) {
+        return { label: "Reply", text: "Message unavailable" };
+      }
+      const label =
+        original.sender === sender ? selfLabel : partnerLabel;
+      return { label, text: getReplyPreviewText(original) };
+    },
+    [messages, sender, selfLabel, partnerLabel],
+  );
+
   useEffect(() => {
     if (!isSupabaseConfigured()) {
       setError("Chat needs Supabase. Run supabase/chat.sql first.");
       return;
     }
-    const sub = subscribeToMessages(applyServerMessages);
+    const sub = subscribeToMessages(applyServerMessages, {
+      sender,
+      onPartnerInChat: setPartnerInChat,
+    });
     refreshRef.current = sub.refresh;
     return () => sub.unsubscribe();
-  }, [applyServerMessages]);
+  }, [applyServerMessages, sender]);
 
   useEffect(() => {
-    listRef.current?.scrollTo({
-      top: listRef.current.scrollHeight,
-      behavior: "smooth",
-    });
-  }, [messages]);
+    markChatRead(sender);
+  }, [sender, messages]);
+
+  useEffect(() => {
+    const el = listRef.current;
+    if (!el) return undefined;
+
+    const onScroll = () => {
+      isNearBottomRef.current = isNearBottom(el);
+    };
+
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    const visible = messages.filter((m) => m.body || m.image_url || m.pending);
+    if (visible.length === 0) return;
+
+    const lastMsg = visible[visible.length - 1];
+    const prevLastId = prevLastMessageIdRef.current;
+    const isFirstLoad = !hasInitialScrolledRef.current;
+    const isNewTail = prevLastId !== null && lastMsg.id !== prevLastId;
+    const shouldScroll =
+      isFirstLoad
+      || (isNewTail && (lastMsg.sender === sender || isNearBottomRef.current));
+
+    if (shouldScroll) {
+      requestAnimationFrame(() => {
+        const el = listRef.current;
+        if (!el) return;
+        el.scrollTo({
+          top: el.scrollHeight,
+          behavior: isFirstLoad ? "auto" : "smooth",
+        });
+        isNearBottomRef.current = true;
+      });
+      hasInitialScrolledRef.current = true;
+    }
+
+    prevLastMessageIdRef.current = lastMsg.id;
+  }, [messages, sender]);
 
   useEffect(() => {
     return () => {
@@ -175,6 +251,7 @@ export default function ChatRoom({
       const { stream, facingMode } = await getPreferredCameraStream();
       streamRef.current = stream;
       setCameraFacing(facingMode === "user" ? "user" : "environment");
+      setCanFlipCamera(await detectCameraFlipSupport());
     } catch {
       setCameraOpen(false);
       setError(
@@ -190,8 +267,28 @@ export default function ChatRoom({
     streamRef.current = null;
     setCameraZoom(1);
     setCameraFacing("environment");
+    setCanFlipCamera(false);
     setCameraLoading(false);
     setCameraOpen(false);
+  };
+
+  const flipCamera = async () => {
+    if (!canFlipCamera || cameraLoading) return;
+    setCameraLoading(true);
+    setError("");
+    try {
+      const { stream, facingMode } = await switchCameraFacing(
+        cameraFacing,
+        streamRef.current,
+      );
+      streamRef.current = stream;
+      setCameraFacing(facingMode === "user" ? "user" : "environment");
+      setCameraZoom(1);
+    } catch {
+      setError("Could not switch camera.");
+    } finally {
+      setCameraLoading(false);
+    }
   };
 
   const cycleCameraZoom = () => {
@@ -222,15 +319,20 @@ export default function ChatRoom({
       return;
     }
 
+    const replyId = replyTo?.id ?? null;
     const previewUrl = URL.createObjectURL(file);
-    const optimistic = createOptimisticMessage(sender, { image_url: previewUrl });
+    const optimistic = createOptimisticMessage(sender, {
+      image_url: previewUrl,
+      reply_to: replyId,
+    });
     addOptimistic(optimistic);
     setSending(true);
     setError("");
+    cancelReply();
 
     try {
       const location = await captureSendLocation();
-      const saved = await sendImageMessage(sender, file, location);
+      const saved = await sendImageMessage(sender, file, location, replyId);
       URL.revokeObjectURL(previewUrl);
       confirmOptimistic(optimistic.id, saved);
       refreshRef.current?.();
@@ -265,15 +367,20 @@ export default function ChatRoom({
       return;
     }
 
-    const optimistic = createOptimisticMessage(sender, { body: value });
+    const replyId = replyTo?.id ?? null;
+    const optimistic = createOptimisticMessage(sender, {
+      body: value,
+      reply_to: replyId,
+    });
     addOptimistic(optimistic);
     setText("");
+    cancelReply();
     setSending(true);
     setError("");
 
     try {
       const location = await captureSendLocation();
-      const saved = await sendTextMessage(sender, value, location);
+      const saved = await sendTextMessage(sender, value, location, replyId);
       if (saved) {
         confirmOptimistic(optimistic.id, saved);
         refreshRef.current?.();
@@ -305,9 +412,19 @@ export default function ChatRoom({
 
   const handleEdit = () => {
     if (!actionMessage?.body) return;
+    cancelReply();
     setEditingMessage(actionMessage);
     setText(actionMessage.body);
     closeMenu();
+    inputRef.current?.focus();
+  };
+
+  const handleReply = () => {
+    if (!actionMessage || actionMessage.pending) return;
+    cancelEdit();
+    setReplyTo(actionMessage);
+    closeMenu();
+    inputRef.current?.focus();
   };
 
   const handleReact = async (emoji) => {
@@ -337,6 +454,12 @@ export default function ChatRoom({
       <header className="chat-header">
         <div className="chat-header-info">
           <h1>{title}</h1>
+          {partnerInChat && (
+            <div className="chat-live-badge" aria-label={`${partnerLabel} is in chat`}>
+              <span className="chat-live-dot" aria-hidden="true" />
+              <span className="chat-live-label">{partnerLabel} is here</span>
+            </div>
+          )}
           <p className="chat-expiry-note">{CHAT_EXPIRY_NOTE}</p>
         </div>
         <button
@@ -364,6 +487,7 @@ export default function ChatRoom({
                 msg={msg}
                 mine={mine}
                 partnerLabel={partnerLabel}
+                replyPreview={resolveReplyPreview(msg.reply_to)}
                 isSelected={actionMessage?.id === msg.id || locationMessage?.id === msg.id}
                 onOpenMenu={handleOpenMessageMenu}
                 onImageClick={setPreviewImage}
@@ -380,6 +504,22 @@ export default function ChatRoom({
           <span>Editing message</span>
           <button type="button" onClick={cancelEdit}>
             Cancel
+          </button>
+        </div>
+      )}
+
+      {replyTo && !editingMessage && (
+        <div className="chat-reply-banner">
+          <div className="chat-reply-banner-content">
+            <span className="chat-reply-banner-label">
+              Replying to {replyTo.sender === sender ? selfLabel : partnerLabel}
+            </span>
+            <span className="chat-reply-banner-text">
+              {getReplyPreviewText(replyTo)}
+            </span>
+          </div>
+          <button type="button" onClick={cancelReply} aria-label="Cancel reply">
+            <Icon icon={X} size={18} />
           </button>
         </div>
       )}
@@ -415,9 +555,16 @@ export default function ChatRoom({
           <Icon icon={Camera} size={20} />
         </button>
         <input
+          ref={inputRef}
           type="text"
           className="chat-input"
-          placeholder={editingMessage ? "Edit message..." : "Type a message..."}
+          placeholder={
+            editingMessage
+              ? "Edit message..."
+              : replyTo
+                ? "Reply..."
+                : "Type a message..."
+          }
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSend()}
@@ -453,6 +600,7 @@ export default function ChatRoom({
           onDelete={handleDelete}
           onEdit={handleEdit}
           onReact={handleReact}
+          onReply={handleReply}
           onViewLocation={() => {
             setLocationMessage(actionMessage);
             closeMenu();
@@ -488,15 +636,26 @@ export default function ChatRoom({
                   muted
                 />
               )}
+              <button
+                type="button"
+                className="chat-camera-close"
+                onClick={closeCamera}
+                aria-label="Close camera"
+              >
+                <Icon icon={X} size={22} />
+              </button>
             </div>
             <div className="chat-camera-actions">
               <button
                 type="button"
-                className="chat-camera-grid-btn chat-camera-cancel"
-                onClick={closeCamera}
-                aria-label="Cancel"
+                className="chat-camera-grid-btn chat-camera-flip"
+                onClick={flipCamera}
+                disabled={!canFlipCamera || cameraLoading}
+                aria-label={
+                  canFlipCamera ? "Switch camera" : "Camera switch unavailable"
+                }
               >
-                <Icon icon={X} size={22} />
+                <Icon icon={SwitchCamera} size={22} />
               </button>
               <button
                 type="button"

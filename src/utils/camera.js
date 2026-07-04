@@ -142,6 +142,41 @@ export async function getPreferredCameraStream() {
   throw lastError ?? new Error("No camera available");
 }
 
+export async function detectCameraFlipSupport() {
+  if (!hasCameraApi()) return false;
+
+  const devices = await navigator.mediaDevices.enumerateDevices();
+  const cameras = devices.filter((d) => d.kind === "videoinput");
+  return cameras.length >= 2;
+}
+
+export async function switchCameraFacing(currentFacing, currentStream) {
+  if (!hasCameraApi()) {
+    throw new Error("Camera API unavailable.");
+  }
+
+  const nextFacing = currentFacing === "user" ? "environment" : "user";
+  stopCameraStream(currentStream);
+
+  const attempts = [
+    () => tryFacingMode({ exact: nextFacing }),
+    () => tryFacingMode({ ideal: nextFacing }),
+    () => pickCameraByDeviceId(nextFacing === "environment"),
+  ];
+
+  let lastError;
+  for (const attempt of attempts) {
+    try {
+      const result = await attempt();
+      if (result?.stream) return result;
+    } catch (err) {
+      lastError = err;
+    }
+  }
+
+  throw lastError ?? new Error("Could not switch camera");
+}
+
 export function stopCameraStream(stream) {
   stream?.getTracks().forEach((track) => track.stop());
 }
