@@ -3582,21 +3582,31 @@ body.chat-open {
   min-width: 0;
 }
 
+.chat-header-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 100%;
+}
+
 .chat-header h1 {
   margin: 0;
+  flex: 0 1 auto;
+  min-width: 0;
   font-size: 1.1rem;
   font-family: "Playfair Display", Georgia, serif;
   color: #6b2d5b;
   line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .chat-live-badge {
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
-  width: fit-content;
-  max-width: 100%;
-  margin-top: 0.35rem;
+  flex-shrink: 0;
   padding: 0.3rem 0.7rem;
   border-radius: 999px;
   background: #e8f8ef;
@@ -3609,6 +3619,7 @@ body.chat-open {
   font-size: 0.78rem;
   font-weight: 700;
   line-height: 1.2;
+  white-space: nowrap;
 }
 
 .chat-live-dot {
@@ -3986,35 +3997,61 @@ body.chat-open {
 }
 
 .chat-reply-preview {
-  margin-bottom: 0.45rem;
-  padding: 0.45rem 0.55rem;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.22);
-  border-left: 3px solid rgba(255, 255, 255, 0.65);
+  display: block;
+  margin-bottom: 0.5rem;
+  padding: 0.5rem 0.65rem;
+  border-radius: 12px;
+  background: #f8f2fc;
+  border: 1px solid #eadcf2;
+  border-left: 4px solid #b57edc;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
 }
 
-.chat-bubble.theirs .chat-reply-preview {
-  background: rgba(142, 68, 173, 0.08);
+.chat-bubble-row.theirs .chat-reply-preview {
+  background: #f8f2fc;
+  border-color: #eadcf2;
   border-left-color: #b57edc;
+}
+
+.chat-bubble-row.mine .chat-reply-preview {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: rgba(255, 255, 255, 0.7);
+  border-left-color: #f368b5;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
 }
 
 .chat-reply-name {
   display: block;
   font-size: 0.72rem;
   font-weight: 700;
-  margin-bottom: 0.15rem;
-  opacity: 0.9;
+  margin-bottom: 0.2rem;
+  line-height: 1.2;
+}
+
+.chat-bubble-row.theirs .chat-reply-name {
+  color: #8e44ad;
+}
+
+.chat-bubble-row.mine .chat-reply-name {
+  color: #c2187a;
 }
 
 .chat-reply-text {
   display: block;
   font-size: 0.78rem;
   line-height: 1.35;
-  opacity: 0.85;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 220px;
+  max-width: min(260px, 100%);
+}
+
+.chat-bubble-row.theirs .chat-reply-text {
+  color: #5a4658;
+}
+
+.chat-bubble-row.mine .chat-reply-text {
+  color: #4a3548;
 }
 
 .chat-menu-reply {

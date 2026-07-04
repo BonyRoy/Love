@@ -453,13 +453,15 @@ export default function ChatRoom({
     <div className={`chat-screen ${actionMessage || locationMessage ? "menu-open" : ""}`}>
       <header className="chat-header">
         <div className="chat-header-info">
-          <h1>{title}</h1>
-          {partnerInChat && (
-            <div className="chat-live-badge" aria-label={`${partnerLabel} is in chat`}>
-              <span className="chat-live-dot" aria-hidden="true" />
-              <span className="chat-live-label">{partnerLabel} is here</span>
-            </div>
-          )}
+          <div className="chat-header-top">
+            <h1>{title}</h1>
+            {partnerInChat && (
+              <div className="chat-live-badge" aria-label={`${partnerLabel} is in chat`}>
+                <span className="chat-live-dot" aria-hidden="true" />
+                <span className="chat-live-label">{partnerLabel} is here</span>
+              </div>
+            )}
+          </div>
           <p className="chat-expiry-note">{CHAT_EXPIRY_NOTE}</p>
         </div>
         <button
