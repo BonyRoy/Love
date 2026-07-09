@@ -1,5 +1,6 @@
-import { useRef } from "react";
+import { useCallback, useRef } from "react";
 import { getReactionSummary } from "../supabase/chatService";
+import { useDoubleTap } from "../hooks/useDoubleTap";
 import { useLongPress } from "../hooks/useLongPress";
 
 function formatTime(iso) {
@@ -21,20 +22,69 @@ export default function ChatMessageBubble({
   onToggleHeart,
 }) {
   const imageClickTimerRef = useRef(null);
+
+  const toggleHeart = useCallback(() => {
+    if (msg.pending) return;
+    navigator.vibrate?.(12);
+    onToggleHeart?.(msg);
+  }, [msg, onToggleHeart]);
+
   const { longPressHandlers, wasLongPress, resetLongPress } = useLongPress(
     () => onOpenMenu(msg),
     { disabled: msg.pending },
   );
 
+  const { onPointerUp: onDoubleTapUp, reset: resetDoubleTap } = useDoubleTap(
+    toggleHeart,
+    { disabled: msg.pending },
+  );
+
   const reactions = getReactionSummary(msg.reactions);
 
-  const handleDoubleClick = (e) => {
+  const handlePointerUp = (event) => {
+    longPressHandlers.onPointerUp(event);
+    if (wasLongPress()) {
+      resetLongPress();
+      resetDoubleTap();
+      return;
+    }
+    if (onDoubleTapUp(event)) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+  };
+
+  const handleDoubleClick = (event) => {
     if (msg.pending) return;
-    e.preventDefault();
+    event.preventDefault();
     clearTimeout(imageClickTimerRef.current);
     imageClickTimerRef.current = null;
-    navigator.vibrate?.(12);
-    onToggleHeart?.(msg);
+    toggleHeart();
+  };
+
+  const handleImagePointerUp = (event) => {
+    if (wasLongPress()) {
+      event.preventDefault();
+      event.stopPropagation();
+      resetLongPress();
+      resetDoubleTap();
+      return;
+    }
+
+    if (onDoubleTapUp(event)) {
+      event.preventDefault();
+      event.stopPropagation();
+      clearTimeout(imageClickTimerRef.current);
+      imageClickTimerRef.current = null;
+      return;
+    }
+
+    event.stopPropagation();
+    clearTimeout(imageClickTimerRef.current);
+    imageClickTimerRef.current = setTimeout(() => {
+      imageClickTimerRef.current = null;
+      onImageClick(msg.image_url);
+    }, 280);
   };
 
   return (
@@ -43,6 +93,7 @@ export default function ChatMessageBubble({
         <div
           className={`chat-bubble ${msg.pending ? "pending" : ""} ${isSelected ? "selected" : ""}`}
           {...longPressHandlers}
+          onPointerUp={handlePointerUp}
           onDoubleClick={handleDoubleClick}
         >
           {!mine && <span className="chat-sender">{partnerLabel}</span>}
@@ -57,18 +108,7 @@ export default function ChatMessageBubble({
             <button
               type="button"
               className="chat-image-link"
-              onClick={(e) => {
-                if (wasLongPress()) {
-                  e.preventDefault();
-                  resetLongPress();
-                  return;
-                }
-                clearTimeout(imageClickTimerRef.current);
-                imageClickTimerRef.current = setTimeout(() => {
-                  imageClickTimerRef.current = null;
-                  onImageClick(msg.image_url);
-                }, 250);
-              }}
+              onPointerUp={handleImagePointerUp}
               aria-label="View image"
             >
               <img src={msg.image_url} alt="Shared" className="chat-image" />

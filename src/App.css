@@ -4014,6 +4014,9 @@ body.chat-open {
   background: #fff;
   border: 1px solid #f0d9e4;
   box-shadow: 0 4px 14px rgba(232, 67, 147, 0.08);
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .chat-bubble-row.mine .chat-bubble {
@@ -4534,6 +4537,7 @@ body.chat-open {
   background: none;
   cursor: pointer;
   text-align: left;
+  touch-action: manipulation;
 }
 
 .chat-image-link:focus-visible {
