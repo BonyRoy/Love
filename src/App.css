@@ -1964,6 +1964,168 @@
   line-height: 1.45;
 }
 
+/* Photos */
+.photos-page .page-hero {
+  margin-bottom: 1.25rem;
+}
+
+.photos-drive-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.85rem;
+  font-size: 0.88rem;
+  color: var(--rose);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.photos-drive-link:hover {
+  color: var(--purple-deep);
+}
+
+.photos-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 0.85rem;
+}
+
+.photos-hero-actions .photos-drive-link {
+  margin-top: 0;
+}
+
+.photos-refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.85rem;
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  background: white;
+  color: var(--rose);
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, opacity 0.2s;
+}
+
+.photos-refresh-btn:hover:not(:disabled) {
+  background: var(--rose-pale);
+  color: var(--purple-deep);
+}
+
+.photos-refresh-btn:disabled {
+  opacity: 0.65;
+  cursor: default;
+}
+
+.photos-refresh-btn .spin {
+  animation: photosRefreshSpin 0.8s linear infinite;
+}
+
+@keyframes photosRefreshSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.photos-status {
+  text-align: center;
+  color: var(--text-soft);
+  padding: 2rem 1rem;
+  font-size: 0.95rem;
+}
+
+.photos-error {
+  margin: 0 0 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  background: rgba(232, 67, 147, 0.08);
+  color: var(--rose);
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.photos-setup {
+  margin-top: 0.5rem;
+  padding: 1.25rem;
+  border-radius: 16px;
+  background: white;
+  border: 1px solid var(--glass-border);
+}
+
+.photos-setup p {
+  margin: 0 0 0.75rem;
+  color: var(--text);
+  text-align: center;
+}
+
+.photos-setup-steps {
+  margin: 0;
+  padding-left: 1.2rem;
+  color: var(--text-soft);
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+
+.photos-setup-steps code {
+  font-size: 0.82rem;
+  background: var(--rose-pale);
+  padding: 0.1rem 0.35rem;
+  border-radius: 6px;
+}
+
+.photos-setup-steps a {
+  color: var(--rose);
+}
+
+.photos-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.photos-grid-item {
+  position: relative;
+  aspect-ratio: 1;
+  padding: 0;
+  border: none;
+  border-radius: 14px;
+  overflow: hidden;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.7);
+  box-shadow: 0 4px 14px rgba(232, 67, 147, 0.08);
+  animation: fadeInUp 0.45s ease both;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.photos-grid-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(232, 67, 147, 0.16);
+}
+
+.photos-grid-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+@media (min-width: 640px) {
+  .photos-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.85rem;
+  }
+}
+
+@media (min-width: 900px) {
+  .photos-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
 .back-link {
   display: inline-flex;
   align-items: center;
@@ -4389,19 +4551,80 @@ body.chat-open {
 .chat-image-preview {
   position: fixed;
   inset: 0;
-  z-index: 1200;
+  z-index: 10200;
   display: flex;
   flex-direction: column;
   background: rgba(12, 8, 14, 0.92);
   backdrop-filter: blur(6px);
 }
 
+.chat-image-preview-close {
+  position: absolute;
+  top: max(0.85rem, env(safe-area-inset-top));
+  right: 1rem;
+  z-index: 10202;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.chat-image-preview-close:hover {
+  background: rgba(255, 255, 255, 0.28);
+  transform: scale(1.04);
+}
+
+.chat-image-preview-nav {
+  position: absolute;
+  top: 50%;
+  z-index: 10201;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.85rem;
+  height: 2.85rem;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  cursor: pointer;
+  transform: translateY(-50%);
+  transition: background 0.2s ease, opacity 0.2s ease, transform 0.2s ease;
+}
+
+.chat-image-preview-nav:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.28);
+  transform: translateY(-50%) scale(1.05);
+}
+
+.chat-image-preview-nav:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.chat-image-preview-nav-prev {
+  left: max(0.75rem, env(safe-area-inset-left));
+}
+
+.chat-image-preview-nav-next {
+  right: max(0.75rem, env(safe-area-inset-right));
+}
+
 .chat-image-preview-toolbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 0.75rem;
-  padding: max(0.75rem, env(safe-area-inset-top)) 1rem 0.75rem;
+  position: relative;
+  z-index: 10201;
+  padding: max(0.75rem, env(safe-area-inset-top)) 4.5rem 0.75rem 1rem;
 }
 
 .chat-image-preview-btn {

@@ -12,6 +12,7 @@ import DailyPage from "./pages/DailyPage";
 import DateIdeasPage from "./pages/DateIdeasPage";
 import MoodPage from "./pages/MoodPage";
 import FavoritesPage from "./pages/FavoritesPage";
+import PhotosPage from "./pages/PhotosPage";
 import GamesPage from "./pages/GamesPage";
 import CatchHearts from "./games/CatchHearts";
 import LoveQuiz from "./games/LoveQuiz";
@@ -48,6 +49,7 @@ export default function App() {
         <Route path="/dates" element={<DateIdeasPage />} />
         <Route path="/mood" element={<MoodPage />} />
         <Route path="/favorites" element={<FavoritesPage />} />
+        <Route path="/photos" element={<PhotosPage />} />
         <Route path="/games" element={<GamesPage />} />
         <Route path="/games/catch-hearts" element={<CatchHearts />} />
         <Route path="/games/quiz" element={<LoveQuiz />} />

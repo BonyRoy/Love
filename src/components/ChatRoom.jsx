@@ -18,7 +18,7 @@ import { markChatRead } from "../utils/chatReadState";
 import ChatEmptyState from "./ChatEmptyState";
 import ChatImagePreview from "./ChatImagePreview";
 import ChatMessageBubble from "./ChatMessageBubble";
-import ChatMessageMenu from "./ChatMessageMenu";
+import ChatMessageMenu, { CHAT_REACTIONS } from "./ChatMessageMenu";
 import ChatLocationModal from "./ChatLocationModal";
 import { getCurrentLocation } from "../utils/geolocation";
 import {
@@ -440,6 +440,18 @@ export default function ChatRoom({
     }
   };
 
+  const handleToggleHeart = async (msg) => {
+    if (msg.pending) return;
+    setError("");
+    try {
+      const updated = await setMessageReaction(msg.id, sender, CHAT_REACTIONS[0]);
+      setMessages((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
+      refreshRef.current?.();
+    } catch (err) {
+      setError(err.message ?? "Failed to react.");
+    }
+  };
+
   const visibleMessages = messages.filter(
     (m) => m.body || m.image_url || m.pending,
   );
@@ -493,6 +505,7 @@ export default function ChatRoom({
                 isSelected={actionMessage?.id === msg.id || locationMessage?.id === msg.id}
                 onOpenMenu={handleOpenMessageMenu}
                 onImageClick={setPreviewImage}
+                onToggleHeart={handleToggleHeart}
               />
             </div>
           );

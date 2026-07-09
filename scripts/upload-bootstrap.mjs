@@ -35,6 +35,10 @@ if (!config.firebase?.api_key) {
   console.warn("Warning: firebase block missing in bootstrap-runtime.json (Our Song needs it).");
 }
 
+if (!config.photos?.drive_folder_id) {
+  console.warn("Warning: photos block missing in bootstrap-runtime.json (Our Photos needs it).");
+}
+
 const uploadUrl = `${supabase_url}/storage/v1/object/app-bootstrap/runtime.json`;
 
 const res = await fetch(uploadUrl, {

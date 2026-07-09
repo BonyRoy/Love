@@ -21,6 +21,7 @@ import {
   Star,
   Smile,
   Music,
+  Images,
 } from "lucide-react";
 
 const iconMap = {
@@ -46,6 +47,7 @@ const iconMap = {
   Star,
   Smile,
   Music,
+  Images,
 };
 
 export function getIcon(name) {

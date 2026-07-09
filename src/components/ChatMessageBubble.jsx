@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { getReactionSummary } from "../supabase/chatService";
 import { useLongPress } from "../hooks/useLongPress";
 
@@ -17,7 +18,9 @@ export default function ChatMessageBubble({
   isSelected,
   onOpenMenu,
   onImageClick,
+  onToggleHeart,
 }) {
+  const imageClickTimerRef = useRef(null);
   const { longPressHandlers, wasLongPress, resetLongPress } = useLongPress(
     () => onOpenMenu(msg),
     { disabled: msg.pending },
@@ -25,12 +28,22 @@ export default function ChatMessageBubble({
 
   const reactions = getReactionSummary(msg.reactions);
 
+  const handleDoubleClick = (e) => {
+    if (msg.pending) return;
+    e.preventDefault();
+    clearTimeout(imageClickTimerRef.current);
+    imageClickTimerRef.current = null;
+    navigator.vibrate?.(12);
+    onToggleHeart?.(msg);
+  };
+
   return (
     <div className={`chat-bubble-row ${mine ? "mine" : "theirs"}`}>
       <div className={`chat-bubble-wrap ${reactions.length ? "has-reactions" : ""}`}>
         <div
           className={`chat-bubble ${msg.pending ? "pending" : ""} ${isSelected ? "selected" : ""}`}
           {...longPressHandlers}
+          onDoubleClick={handleDoubleClick}
         >
           {!mine && <span className="chat-sender">{partnerLabel}</span>}
           {replyPreview && (
@@ -50,7 +63,11 @@ export default function ChatMessageBubble({
                   resetLongPress();
                   return;
                 }
-                onImageClick(msg.image_url);
+                clearTimeout(imageClickTimerRef.current);
+                imageClickTimerRef.current = setTimeout(() => {
+                  imageClickTimerRef.current = null;
+                  onImageClick(msg.image_url);
+                }, 250);
               }}
               aria-label="View image"
             >

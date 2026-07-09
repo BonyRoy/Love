@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Download, X } from "lucide-react";
+import { createPortal } from "react-dom";
+import { ChevronLeft, ChevronRight, Download, X } from "lucide-react";
 import { Icon } from "./Icon";
 
 function imageFilename(url) {
@@ -33,21 +34,44 @@ async function downloadImage(url, filename) {
   }
 }
 
-export default function ChatImagePreview({ imageUrl, onClose }) {
+export default function ChatImagePreview({
+  imageUrl,
+  onClose,
+  onPrevious,
+  onNext,
+  hasPrevious = false,
+  hasNext = false,
+}) {
   const [downloading, setDownloading] = useState(false);
   const filename = imageFilename(imageUrl);
+  const showNavigation = Boolean(onPrevious || onNext);
 
   useEffect(() => {
     const onKeyDown = (e) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {
+        onClose();
+        return;
+      }
+
+      if (e.key === "ArrowLeft" && hasPrevious && onPrevious) {
+        e.preventDefault();
+        onPrevious();
+        return;
+      }
+
+      if (e.key === "ArrowRight" && hasNext && onNext) {
+        e.preventDefault();
+        onNext();
+      }
     };
+
     document.body.style.overflow = "hidden";
     window.addEventListener("keydown", onKeyDown);
     return () => {
       document.body.style.overflow = "";
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [onClose]);
+  }, [onClose, onPrevious, onNext, hasPrevious, hasNext]);
 
   const handleDownload = async () => {
     setDownloading(true);
@@ -58,7 +82,7 @@ export default function ChatImagePreview({ imageUrl, onClose }) {
     }
   };
 
-  return (
+  return createPortal(
     <div
       className="chat-image-preview"
       role="dialog"
@@ -66,15 +90,48 @@ export default function ChatImagePreview({ imageUrl, onClose }) {
       aria-label="Image preview"
       onClick={onClose}
     >
+      <button
+        type="button"
+        className="chat-image-preview-close"
+        onClick={(e) => {
+          e.stopPropagation();
+          onClose();
+        }}
+        aria-label="Close preview"
+      >
+        <Icon icon={X} size={24} />
+      </button>
+
+      {showNavigation && (
+        <>
+          <button
+            type="button"
+            className="chat-image-preview-nav chat-image-preview-nav-prev"
+            onClick={(e) => {
+              e.stopPropagation();
+              onPrevious?.();
+            }}
+            disabled={!hasPrevious}
+            aria-label="Previous photo"
+          >
+            <Icon icon={ChevronLeft} size={28} />
+          </button>
+          <button
+            type="button"
+            className="chat-image-preview-nav chat-image-preview-nav-next"
+            onClick={(e) => {
+              e.stopPropagation();
+              onNext?.();
+            }}
+            disabled={!hasNext}
+            aria-label="Next photo"
+          >
+            <Icon icon={ChevronRight} size={28} />
+          </button>
+        </>
+      )}
+
       <div className="chat-image-preview-toolbar" onClick={(e) => e.stopPropagation()}>
-        <button
-          type="button"
-          className="chat-image-preview-btn"
-          onClick={onClose}
-          aria-label="Close preview"
-        >
-          <Icon icon={X} size={22} />
-        </button>
         <button
           type="button"
           className="chat-image-preview-btn chat-image-preview-download"
@@ -87,8 +144,9 @@ export default function ChatImagePreview({ imageUrl, onClose }) {
         </button>
       </div>
       <div className="chat-image-preview-body" onClick={(e) => e.stopPropagation()}>
-        <img src={imageUrl} alt="Chat attachment preview" className="chat-image-preview-img" />
+        <img src={imageUrl} alt="Image preview" className="chat-image-preview-img" />
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

@@ -42,7 +42,8 @@ values (
       { "to": "/bucket-list", "label": "Bucket List", "icon": "ListTodo" },
       { "to": "/dates", "label": "Date Ideas", "icon": "MapPin" },
       { "to": "/mood", "label": "Mood Check-in", "icon": "Smile" },
-      { "to": "/favorites", "label": "Your Favorites", "icon": "Star" }
+      { "to": "/favorites", "label": "Your Favorites", "icon": "Star" },
+      { "to": "/photos", "label": "Our Photos", "icon": "Images" }
     ]
   },
   "homeSections": [
@@ -62,7 +63,8 @@ values (
         { "to": "/timeline", "icon": "Clock", "title": "Our Story", "desc": "Milestones & song", "color": "card-rose" },
         { "to": "/bucket-list", "icon": "ListTodo", "title": "Bucket List", "desc": "Adventures ahead", "color": "card-purple" },
         { "to": "/dates", "icon": "MapPin", "title": "Date Ideas", "desc": "Pick our next date", "color": "card-pink" },
-        { "to": "/favorites", "icon": "Star", "title": "Favorites", "desc": "Things you love", "color": "card-blue" }
+        { "to": "/favorites", "icon": "Star", "title": "Favorites", "desc": "Things you love", "color": "card-blue" },
+        { "to": "/photos", "icon": "Images", "title": "Our Photos", "desc": "Memories together", "color": "card-pink" }
       ]
     },
     {

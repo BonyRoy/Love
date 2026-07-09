@@ -1,6 +1,6 @@
 const PROJECT_REF =
   import.meta.env.VITE_SUPABASE_PROJECT_REF || "rfkfctipgahysdysctea";
-const CONFIG_CACHE_KEY = "ishu-runtime-config-v2";
+const CONFIG_CACHE_KEY = "ishu-runtime-config-v3";
 
 function projectUrl() {
   return `https://${PROJECT_REF}.supabase.co`;
@@ -84,19 +84,43 @@ async function fetchBootstrapJson() {
   return null;
 }
 
+function mergeRuntimeConfig(cached, fresh) {
+  let next = cached;
+
+  if (!cached.photos?.drive_folder_id && fresh.photos?.drive_folder_id) {
+    next = { ...next, photos: fresh.photos };
+  }
+
+  if (!cached.firebase?.api_key && fresh.firebase?.api_key) {
+    next = { ...next, firebase: fresh.firebase };
+  }
+
+  return next;
+}
+
 export async function loadRuntimeConfig() {
   const cached = readCachedConfig();
+  const fromStorage = await fetchBootstrapJson();
+
+  if (fromStorage) {
+    const fresh = applyEnvFirebaseFallback(fromStorage);
+
+    if (!cached) {
+      cacheConfig(fresh);
+      return fresh;
+    }
+
+    const merged = mergeRuntimeConfig(cached, fresh);
+    if (merged !== cached) {
+      cacheConfig(merged);
+    }
+    return merged;
+  }
+
   if (cached) return cached;
 
   const envUrl = import.meta.env.VITE_SUPABASE_URL;
   const envKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-  const fromStorage = await fetchBootstrapJson();
-  if (fromStorage) {
-    const config = applyEnvFirebaseFallback(fromStorage);
-    cacheConfig(config);
-    return config;
-  }
 
   if (envUrl && envKey) {
     const config = applyEnvFirebaseFallback({

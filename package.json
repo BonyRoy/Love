@@ -8,7 +8,8 @@
     "build": "vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "upload-bootstrap": "node scripts/upload-bootstrap.mjs"
+    "upload-bootstrap": "node scripts/upload-bootstrap.mjs",
+    "import-photos": "node scripts/import-photos-json.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.109.0",
